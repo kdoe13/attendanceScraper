@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      min-height: 300px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      color: #333;
+      font-size: 18px;
+      margin: 0;
+    }
+    .scrape-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .scrape-btn:hover {
+      background-color: #45a049;
+    }
+    .scrape-btn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .results {
+      background-color: white;
+      padding: 15px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .result-item {
+      margin-bottom: 10px;
+    }
+    .result-label {
+      font-weight: bold;
+      color: #333;
+    }
+    .result-value {
+      color: #666;
+      word-wrap: break-word;
+    }
+    .attendees-list {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 5px 0;
+    }
+    .attendees-list li {
+      background-color: #e7f3ff;
+      padding: 5px;
+      margin: 2px 0;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    .error {
+      color: #d32f2f;
+      background-color: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+      border-left: 4px solid #d32f2f;
+    }
+    .no-results {
+      color: #666;
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Page Element Scraper</h1>
+  </div>
+  
+  <button id="scrapeBtn" class="scrape-btn">Scrape Page Elements</button>
+  
+  <div id="results" class="results" style="display: none;">
+    <!-- Results will be populated by JavaScript -->
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

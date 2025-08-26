@@ -1,0 +1,23 @@
+{
+  "name": "Page Element Scraper",
+  "description": "Scrapes specific elements from web pages and organizes them into a structured object",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": [
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Scrape Page Elements"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
