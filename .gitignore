@@ -1,0 +1,7 @@
+# Configuration files with sensitive data
+config.js
+
+# Chrome extension development files
+*.crx
+*.pem
+.DS_Store

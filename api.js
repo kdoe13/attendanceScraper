@@ -1,8 +1,13 @@
 // API configuration and helper functions
+// Credentials are loaded from config.js (not committed to git)
+if (typeof CONFIG === 'undefined') {
+  throw new Error('CONFIG not loaded. Make sure config.js exists and is loaded first.');
+}
+
 const API_CONFIG = {
-  baseUrl: 'http://localhost:8000/api/v1/',
-  username: 'apitest',
-  password: 'testpass123',
+  baseUrl: CONFIG.API_BASE_URL,
+  username: CONFIG.API_USERNAME,
+  password: CONFIG.API_PASSWORD,
   pools: {
     'carmody': 1,
     'vmac': 2,
