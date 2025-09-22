@@ -1,13 +1,10 @@
 // API configuration and helper functions
-// Credentials are loaded from config.js (not committed to git)
-if (typeof CONFIG === 'undefined') {
-  throw new Error('CONFIG not loaded. Make sure config.js exists and is loaded first.');
-}
+
 
 const API_CONFIG = {
-  baseUrl: CONFIG.API_BASE_URL,
-  username: CONFIG.API_USERNAME,
-  password: CONFIG.API_PASSWORD,
+  baseUrl: null,
+  username: null,
+  password: null,
   pools: {
     'carmody': 1,
     'vmac': 2,
@@ -15,14 +12,40 @@ const API_CONFIG = {
   }
 };
 
+// Initialize API config with stored credentials
+async function initializeAPIConfig() {
+  const { success, credentials } = await credentialManager.loadCredentials();
+  
+  if (success) {
+    API_CONFIG.baseUrl = credentials.API_BASE_URL;
+    API_CONFIG.username = credentials.API_USERNAME;
+    API_CONFIG.password = credentials.API_PASSWORD;
+  }
+  
+  return success;
+}
+
 // Create Basic Auth header
 function getAuthHeader() {
+  if (!API_CONFIG.username || !API_CONFIG.password) {
+    throw new Error('API credentials not configured. Please set up your credentials first.');
+  }
+  
   const credentials = btoa(`${API_CONFIG.username}:${API_CONFIG.password}`);
   return `Basic ${credentials}`;
 }
 
 // Generic API request helper
 async function makeAPIRequest(endpoint, method = 'GET', body = null) {
+  // Ensure API config is initialized
+  if (!API_CONFIG.baseUrl) {
+    await initializeAPIConfig();
+  }
+  
+  if (!API_CONFIG.baseUrl) {
+    throw new Error('API base URL not configured. Please set up your credentials first.');
+  }
+  
   const url = `${API_CONFIG.baseUrl}${endpoint}`;
 
   const options = {

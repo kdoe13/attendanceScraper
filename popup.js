@@ -5,8 +5,148 @@ document.addEventListener('DOMContentLoaded', function() {
   const submitBtn = document.getElementById('submitBtn');
   const detectedPoolDiv = document.getElementById('detectedPool');
   const apiStatus = document.getElementById('apiStatus');
+  
+  // Credential management elements
+  const credentialSection = document.getElementById('credentialSection');
+  const scraperSection = document.getElementById('scraperSection');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const saveCredentialsBtn = document.getElementById('saveCredentialsBtn');
+  const clearCredentialsBtn = document.getElementById('clearCredentialsBtn');
+  const backToScraperBtn = document.getElementById('backToScraperBtn');
+  const apiUrlInput = document.getElementById('apiUrl');
+  const apiUsernameInput = document.getElementById('apiUsername');
+  const apiPasswordInput = document.getElementById('apiPassword');
+  const credentialStatus = document.getElementById('credentialStatus');
 
   let currentScrapedData = null;
+  let isCredentialSectionVisible = false;
+
+  // Initialize the popup
+  initializePopup();
+
+  // Initialize popup based on credential status
+  async function initializePopup() {
+    try {
+      const hasCredentials = await credentialManager.areCredentialsConfigured();
+      
+      if (!hasCredentials) {
+        showCredentialSection();
+        displayCredentialStatus('Please configure your API credentials to use the scraper.', 'api-info');
+      } else {
+        // Load existing credentials for editing
+        const { success, credentials } = await credentialManager.loadCredentials();
+        if (success) {
+          apiUrlInput.value = credentials.API_BASE_URL || '';
+          apiUsernameInput.value = credentials.API_USERNAME || '';
+          // Don't prefill password for security
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize popup:', error);
+      displayCredentialStatus('Error initializing extension. Please try reloading.', 'api-error');
+    }
+  }
+
+  // Show/hide credential section
+  function showCredentialSection() {
+    credentialSection.style.display = 'block';
+    scraperSection.style.display = 'none';
+    isCredentialSectionVisible = true;
+  }
+
+  function hideCredentialSection() {
+    credentialSection.style.display = 'none';
+    scraperSection.style.display = 'block';
+    isCredentialSectionVisible = false;
+  }
+
+  // Settings button event listener
+  settingsBtn.addEventListener('click', function() {
+    if (isCredentialSectionVisible) {
+      hideCredentialSection();
+    } else {
+      showCredentialSection();
+    }
+  });
+
+  // Back to scraper button event listener
+  backToScraperBtn.addEventListener('click', function() {
+    hideCredentialSection();
+  });
+
+  // Save credentials event listener
+  saveCredentialsBtn.addEventListener('click', async function() {
+    const credentials = {
+      baseUrl: apiUrlInput.value.trim(),
+      username: apiUsernameInput.value.trim(),
+      password: apiPasswordInput.value.trim()
+    };
+
+    // Validate credentials
+    const validation = credentialManager.validateCredentials(credentials);
+    if (!validation.isValid) {
+      displayCredentialStatus(`Validation errors: ${validation.errors.join(', ')}`, 'api-error');
+      return;
+    }
+
+    // Save credentials
+    saveCredentialsBtn.disabled = true;
+    saveCredentialsBtn.textContent = 'Saving...';
+
+    try {
+      const result = await credentialManager.saveCredentials(credentials);
+      
+      if (result.success) {
+        displayCredentialStatus('Credentials saved successfully!', 'api-success');
+        // Clear password field for security
+        apiPasswordInput.value = '';
+        
+        // Auto-hide after 2 seconds if this was the initial setup
+        const hasCredentials = await credentialManager.areCredentialsConfigured();
+        if (hasCredentials) {
+          setTimeout(() => {
+            hideCredentialSection();
+          }, 2000);
+        }
+      } else {
+        displayCredentialStatus(`Failed to save credentials: ${result.error}`, 'api-error');
+      }
+    } catch (error) {
+      displayCredentialStatus(`Error saving credentials: ${error.message}`, 'api-error');
+    } finally {
+      saveCredentialsBtn.disabled = false;
+      saveCredentialsBtn.textContent = 'Save Credentials';
+    }
+  });
+
+  // Clear credentials event listener
+  clearCredentialsBtn.addEventListener('click', async function() {
+    if (!confirm('Are you sure you want to clear all stored credentials?')) {
+      return;
+    }
+
+    clearCredentialsBtn.disabled = true;
+    clearCredentialsBtn.textContent = 'Clearing...';
+
+    try {
+      const result = await credentialManager.clearCredentials();
+      
+      if (result.success) {
+        displayCredentialStatus('Credentials cleared successfully.', 'api-success');
+        // Clear form fields
+        apiUrlInput.value = 'http://localhost:8000/api/v1/';
+        apiUsernameInput.value = '';
+        apiPasswordInput.value = '';
+      } else {
+        displayCredentialStatus(`Failed to clear credentials: ${result.error}`, 'api-error');
+      }
+    } catch (error) {
+      displayCredentialStatus(`Error clearing credentials: ${error.message}`, 'api-error');
+    } finally {
+      clearCredentialsBtn.disabled = false;
+      clearCredentialsBtn.textContent = 'Clear Credentials';
+    }
+  });
 
   scrapeBtn.addEventListener('click', async function() {
     // Disable button while scraping
@@ -168,6 +308,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function displayApiStatus(message, className = 'api-info') {
     apiStatus.innerHTML = escapeHtml(message);
     apiStatus.className = `api-status ${className}`;
+  }
+
+  function displayCredentialStatus(message, className = 'api-info') {
+    credentialStatus.innerHTML = escapeHtml(message);
+    credentialStatus.className = `credential-status ${className}`;
   }
 
   function escapeHtml(text) {
