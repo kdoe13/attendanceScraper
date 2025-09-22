@@ -130,6 +130,96 @@
       color: #1565c0;
       border: 1px solid #2196f3;
     }
+    .credential-section {
+      background-color: white;
+      padding: 20px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .credential-section h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 16px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
+    .save-btn, .clear-btn, .back-btn {
+      width: 48%;
+      padding: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 4%;
+    }
+    .back-btn {
+      width: 100%;
+      background-color: #607d8b;
+      color: white;
+      margin-top: 10px;
+      margin-right: 0;
+    }
+    .back-btn:hover {
+      background-color: #546e7a;
+    }
+    .save-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .save-btn:hover {
+      background-color: #45a049;
+    }
+    .clear-btn {
+      background-color: #f44336;
+      color: white;
+      margin-right: 0;
+    }
+    .clear-btn:hover {
+      background-color: #da190b;
+    }
+    .settings-btn {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      background-color: #757575;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .settings-btn:hover {
+      background-color: #616161;
+    }
+    .credential-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -137,7 +227,32 @@
     <h1>Page Element Scraper</h1>
   </div>
   
-  <button id="scrapeBtn" class="scrape-btn">Scrape Page Elements</button>
+  <!-- Credential Setup Section -->
+  <div id="credentialSection" class="credential-section" style="display: none;">
+    <h2>API Credentials Setup</h2>
+    <div class="form-group">
+      <label for="apiUrl">API Base URL:</label>
+      <input type="url" id="apiUrl" placeholder="http://localhost:8000/api/v1/" value="http://localhost:8000/api/v1/">
+    </div>
+    <div class="form-group">
+      <label for="apiUsername">Username:</label>
+      <input type="text" id="apiUsername" placeholder="Enter your API username">
+    </div>
+    <div class="form-group">
+      <label for="apiPassword">Password:</label>
+      <input type="password" id="apiPassword" placeholder="Enter your API password">
+    </div>
+    <button id="saveCredentialsBtn" class="save-btn">Save Credentials</button>
+    <button id="clearCredentialsBtn" class="clear-btn">Clear Credentials</button>
+    <button id="backToScraperBtn" class="back-btn">← Back to Scraper</button>
+    <div id="credentialStatus" class="credential-status"></div>
+  </div>
+  
+  <!-- Main Scraper Section -->
+  <div id="scraperSection">
+    <button id="scrapeBtn" class="scrape-btn">Scrape Page Elements</button>
+    <button id="settingsBtn" class="settings-btn">⚙️ Settings</button>
+  </div>
   
   <div id="apiSection" class="api-section" style="display: none;">
     <div class="pool-detection">
@@ -152,7 +267,7 @@
     <!-- Results will be populated by JavaScript -->
   </div>
 
-  <script src="config.js"></script>
+  <script src="credentials.js"></script>
   <script src="api.js"></script>
   <script src="popup.js"></script>
 </body>
