@@ -10,19 +10,19 @@ function scrapePageElements() {
 
   try {
     // Get location from "main a" textContent
-    const locationElement = document.querySelector('main a');
+    const locationElement = document.querySelector('main h1');
     if (locationElement) {
       data.location = locationElement.textContent.trim();
     }
 
     // Get date from "main div.pt-px" textContent
-    const dateElement = document.querySelector('main div.pt-px');
+    const dateElement = document.querySelector('main span.ds2-k14');
     if (dateElement) {
       data.date = dateElement.textContent.trim();
     }
 
     // Get attendees from "button[data-event-label='attendee-card'] p" textContent
-    const attendeeElements = document.querySelectorAll("button[data-event-label='attendee-card'] p");
+    const attendeeElements = document.querySelectorAll("main h3");
     attendeeElements.forEach((element) => {
       const name = element.textContent.trim();
       if (name) {
