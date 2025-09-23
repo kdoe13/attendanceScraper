@@ -6,6 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const detectedPoolDiv = document.getElementById('detectedPool');
   const apiStatus = document.getElementById('apiStatus');
   
+  // Game existence elements
+  const gameExistsSection = document.getElementById('gameExistsSection');
+  const submitSection = document.getElementById('submitSection');
+  const existingGameInfo = document.getElementById('existingGameInfo');
+  const viewGameBtn = document.getElementById('viewGameBtn');
+  const updateGameBtn = document.getElementById('updateGameBtn');
+  const createNewGameBtn = document.getElementById('createNewGameBtn');
+  
   // Credential management elements
   const credentialSection = document.getElementById('credentialSection');
   const scraperSection = document.getElementById('scraperSection');
@@ -19,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const credentialStatus = document.getElementById('credentialStatus');
 
   let currentScrapedData = null;
+  let currentGameData = null;
   let isCredentialSectionVisible = false;
 
   // Initialize the popup
@@ -172,44 +181,140 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Handle game submission with existence checking
   submitBtn.addEventListener('click', async function() {
+    await handleSubmission('create');
+  });
+
+  // View existing game
+  viewGameBtn.addEventListener('click', async function() {
+    if (currentGameData && currentGameData.existingGame) {
+      const { success, credentials } = await credentialManager.loadCredentials();
+      if (success) {
+        const gameUrl = generateGameUrl(currentGameData.existingGame.id, credentials.API_BASE_URL);
+        chrome.tabs.create({ url: gameUrl });
+      }
+    }
+  });
+
+  // Update existing game attendees
+  updateGameBtn.addEventListener('click', async function() {
+    await handleSubmission('update');
+  });
+
+  // Create new game despite existing one
+  createNewGameBtn.addEventListener('click', async function() {
+    await handleSubmission('force-create');
+  });
+
+  // Unified submission handler
+  async function handleSubmission(action = 'create') {
     if (!currentScrapedData) {
       displayApiStatus('No data to submit. Please scrape the page first.', 'api-error');
       return;
     }
 
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
+    const activeBtn = getActiveButton(action);
+    
+    // Disable active button
+    activeBtn.disabled = true;
+    const originalText = activeBtn.textContent;
+    activeBtn.textContent = getLoadingText(action);
 
     try {
       displayApiStatus('Detecting pool and looking up player IDs...', 'api-info');
 
-      // Create game data (this will auto-detect pool and lookup player IDs)
-      const { gameData, playerIds, notFound, detectedPool } = await createGameData(currentScrapedData);
+      // Check game existence and prepare data
+      currentGameData = await handleGameSubmission(currentScrapedData);
 
-      let statusMessage = `Pool: ${detectedPool.name.toUpperCase()}, Found ${playerIds.length} player(s)`;
-      if (notFound.length > 0) {
-        statusMessage += `, ${notFound.length} not found: ${notFound.join(', ')}`;
+      let statusMessage = `Pool: ${currentGameData.detectedPool.name.toUpperCase()}, Found ${currentGameData.playerIds.length} player(s)`;
+      if (currentGameData.notFound.length > 0) {
+        statusMessage += `, ${currentGameData.notFound.length} not found: ${currentGameData.notFound.join(', ')}`;
       }
       displayApiStatus(statusMessage, 'api-info');
 
-      // Submit to API
-      displayApiStatus('Submitting game to API...', 'api-info');
-      const result = await submitGame(gameData);
+      // Handle based on action and game existence
+      if (action === 'create' && currentGameData.gameExists) {
+        // Show game exists options
+        showGameExistsSection();
+        displayGameExistsInfo();
+        return;
+      } else if (action === 'update' && currentGameData.gameExists) {
+        // Update existing game
+        displayApiStatus('Updating existing game attendees...', 'api-info');
+        const existingAttendees = currentGameData.existingGame.attendees || [];
+        const result = await updateGameAttendees(
+          currentGameData.existingGame.id,
+          currentGameData.playerIds,
+          existingAttendees
+        );
+        displayApiStatus('Game attendees updated successfully!', 'api-success');
+        console.log('Update Response:', result);
+      } else {
+        // Create new game (either no existing game or force-create)
+        const gameData = {
+          pool: currentGameData.detectedPool.id,
+          starttime: currentGameData.parsedDate,
+          endtime: currentGameData.parsedDate,
+          shared_time_minutes: generateRandomSharedTime(),
+          attendees: currentGameData.playerIds
+        };
 
-      displayApiStatus('Game submitted successfully!', 'api-success');
-      console.log('API Response:', result);
+        displayApiStatus('Creating new game...', 'api-info');
+        const result = await submitGame(gameData);
+        displayApiStatus('Game created successfully!', 'api-success');
+        console.log('Create Response:', result);
+      }
+
+      // Hide game exists section after successful action
+      hideGameExistsSection();
 
     } catch (error) {
       console.error('API submission error:', error);
       displayApiStatus('Failed to submit: ' + error.message, 'api-error');
     } finally {
-      // Re-enable submit button
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit to API';
+      // Re-enable button
+      activeBtn.disabled = false;
+      activeBtn.textContent = originalText;
     }
-  });
+  }
+
+  // Helper functions
+  function getActiveButton(action) {
+    switch (action) {
+      case 'update': return updateGameBtn;
+      case 'force-create': return createNewGameBtn;
+      default: return submitBtn;
+    }
+  }
+
+  function getLoadingText(action) {
+    switch (action) {
+      case 'update': return 'Updating...';
+      case 'force-create': return 'Creating...';
+      default: return 'Processing...';
+    }
+  }
+
+  function showGameExistsSection() {
+    gameExistsSection.style.display = 'block';
+    submitSection.style.display = 'none';
+  }
+
+  function hideGameExistsSection() {
+    gameExistsSection.style.display = 'none';
+    submitSection.style.display = 'block';
+  }
+
+  function displayGameExistsInfo() {
+    if (currentGameData && currentGameData.existingGame) {
+      const game = currentGameData.existingGame;
+      const attendeeCount = game.attendees ? game.attendees.length : 0;
+      const gameDate = new Date(game.starttime).toLocaleDateString();
+      
+      existingGameInfo.innerHTML = `Game on ${gameDate} with ${attendeeCount} attendee(s)<br>Choose an action below:`;
+    }
+  }
 
   function displayResults(response) {
     resultsDiv.style.display = 'block';

@@ -15,13 +15,13 @@ const API_CONFIG = {
 // Initialize API config with stored credentials
 async function initializeAPIConfig() {
   const { success, credentials } = await credentialManager.loadCredentials();
-  
+
   if (success) {
     API_CONFIG.baseUrl = credentials.API_BASE_URL;
     API_CONFIG.username = credentials.API_USERNAME;
     API_CONFIG.password = credentials.API_PASSWORD;
   }
-  
+
   return success;
 }
 
@@ -30,7 +30,7 @@ function getAuthHeader() {
   if (!API_CONFIG.username || !API_CONFIG.password) {
     throw new Error('API credentials not configured. Please set up your credentials first.');
   }
-  
+
   const credentials = btoa(`${API_CONFIG.username}:${API_CONFIG.password}`);
   return `Basic ${credentials}`;
 }
@@ -41,19 +41,29 @@ async function makeAPIRequest(endpoint, method = 'GET', body = null) {
   if (!API_CONFIG.baseUrl) {
     await initializeAPIConfig();
   }
-  
+
   if (!API_CONFIG.baseUrl) {
     throw new Error('API base URL not configured. Please set up your credentials first.');
   }
-  
+
   const url = `${API_CONFIG.baseUrl}${endpoint}`;
+
+  const headers = {
+    'Authorization': getAuthHeader(),
+    'Content-Type': 'application/json',
+  };
+
+  // Add additional headers for write operations to help with CSRF
+  if (method !== 'GET') {
+    headers['X-Requested-With'] = 'XMLHttpRequest';
+    // Try to set origin to the API base URL instead of chrome-extension://
+    const baseUrlObj = new URL(API_CONFIG.baseUrl);
+    headers['Origin'] = `${baseUrlObj.protocol}//${baseUrlObj.host}`;
+  }
 
   const options = {
     method: method,
-    headers: {
-      'Authorization': getAuthHeader(),
-      'Content-Type': 'application/json',
-    }
+    headers: headers
   };
 
   if (body && method !== 'GET') {
@@ -61,10 +71,23 @@ async function makeAPIRequest(endpoint, method = 'GET', body = null) {
   }
 
   try {
+    console.log(`Making ${method} request to: ${url}`);
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      // Get more detailed error information
+      let errorMessage = `API request failed: ${method} ${url} - ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage += ` - ${errorData.detail}`;
+        }
+        console.error('API Error Details:', errorData);
+      } catch (e) {
+        // If we can't parse JSON, use the original error
+        console.error('Could not parse error response');
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -202,7 +225,84 @@ async function createGameData(scrapedData) {
   };
 }
 
-// Submit game to API
+// Check if game already exists for given date and pool
+async function checkGameExists(date, poolId) {
+  try {
+    const response = await makeAPIRequest(`games?starttime__date=${date}&pool=${poolId}`);
+
+    if (response && response.results && response.results.length > 0) {
+      // Game exists, return the first matching game
+      return {
+        exists: true,
+        game: response.results[0],
+        allGames: response.results // In case there are multiple games on same date/pool
+      };
+    }
+
+    return {
+      exists: false,
+      game: null,
+      allGames: []
+    };
+  } catch (error) {
+    console.error('Error checking if game exists:', error);
+    throw error;
+  }
+}
+
+// Generate game URL (you can customize this format)
+function generateGameUrl(gameId, baseUrl) {
+  // Remove '/api/v1/' from base URL and add game path
+  const webBaseUrl = baseUrl.replace('/api/v1/', '').replace('/api/v1', '');
+  return `${webBaseUrl}/admin/attendance/game/${gameId}/change`;
+}
+
+// Update existing game with new attendees
+async function updateGameAttendees(gameId, newPlayerIds, existingPlayerIds = []) {
+  try {
+    // Combine existing and new player IDs, removing duplicates
+    const allPlayerIds = [...new Set([...existingPlayerIds, ...newPlayerIds])];
+
+    const updateData = {
+      attendees: allPlayerIds
+    };
+
+    return await makeAPIRequest(`games/${gameId}/`, 'PATCH', updateData);
+  } catch (error) {
+    console.error('Error updating game attendees:', error);
+    throw error;
+  }
+}
+
+// Submit game to API (original function)
 async function submitGame(gameData) {
   return await makeAPIRequest('games/', 'POST', gameData);
+}
+
+// Enhanced game submission with existence checking
+async function handleGameSubmission(scrapedData) {
+  const detectedPool = detectPoolFromLocation(scrapedData.location);
+
+  if (!detectedPool) {
+    throw new Error(`Could not detect pool from location: "${scrapedData.location}". Expected one of: ${Object.keys(API_CONFIG.pools).join(', ')}`);
+  }
+
+  // Get player IDs for attendees
+  const { playerIds, notFound } = await getPlayerIds(scrapedData.attendees);
+
+  // Parse the scraped date
+  const parsedDate = parseDate(scrapedData.date);
+
+  // Check if game already exists
+  const gameCheck = await checkGameExists(parsedDate, detectedPool.id);
+
+  return {
+    detectedPool,
+    playerIds,
+    notFound,
+    parsedDate,
+    gameExists: gameCheck.exists,
+    existingGame: gameCheck.game,
+    allExistingGames: gameCheck.allGames
+  };
 }

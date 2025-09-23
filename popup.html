@@ -220,6 +220,63 @@
       border-radius: 4px;
       font-size: 14px;
     }
+    .game-exists-section {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .game-exists-warning {
+      text-align: center;
+    }
+    .game-exists-warning .result-label {
+      color: #856404;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .game-exists-warning .result-value {
+      color: #856404;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    .game-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .view-game-btn, .update-game-btn, .create-new-btn {
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .view-game-btn {
+      background-color: #2196F3;
+      color: white;
+    }
+    .view-game-btn:hover {
+      background-color: #1976D2;
+    }
+    .update-game-btn {
+      background-color: #FF9800;
+      color: white;
+    }
+    .update-game-btn:hover {
+      background-color: #F57C00;
+    }
+    .create-new-btn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .create-new-btn:hover {
+      background-color: #45a049;
+    }
   </style>
 </head>
 <body>
@@ -259,7 +316,25 @@
       <div class="result-label">Detected Pool:</div>
       <div id="detectedPool" class="result-value">-</div>
     </div>
-    <button id="submitBtn" class="submit-btn">Submit to API</button>
+    
+    <!-- Game exists section -->
+    <div id="gameExistsSection" class="game-exists-section" style="display: none;">
+      <div class="game-exists-warning">
+        <div class="result-label">⚠️ Game Already Exists</div>
+        <div class="result-value" id="existingGameInfo">-</div>
+        <div class="game-actions">
+          <button id="viewGameBtn" class="view-game-btn">🔗 View Game</button>
+          <button id="updateGameBtn" class="update-game-btn">🔄 Update Attendees</button>
+          <button id="createNewGameBtn" class="create-new-btn">➕ Create New Game</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Regular submit section -->
+    <div id="submitSection" class="submit-section">
+      <button id="submitBtn" class="submit-btn">Submit to API</button>
+    </div>
+    
     <div id="apiStatus" class="api-status"></div>
   </div>
   
