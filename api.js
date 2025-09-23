@@ -163,6 +163,67 @@ function parseDate(dateString) {
   }
 }
 
+// Get start and end times based on location and day of week
+function getGameTimes(dateString, poolName) {
+  console.log('⏰ getGameTimes called with:', { dateString, poolName });
+  
+  if (!dateString || !poolName) {
+    console.log('❌ Missing dateString or poolName');
+    return null;
+  }
+
+  // Create date object and force it to be interpreted as local date to avoid timezone issues
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const poolNameLower = poolName.toLowerCase();
+  
+  console.log('📊 Day of week:', dayOfWeek, '(0=Sun, 1=Mon, etc.)');
+  console.log('🏊 Pool name lower:', poolNameLower);
+
+  // Define the schedule
+  const schedule = {
+    'carmody': {
+      0: { startTime: '14:45', endTime: '16:30' }, // Sunday
+      3: { startTime: '18:45', endTime: '20:15' }  // Wednesday
+    },
+    'vmac': {
+      0: { startTime: '09:45', endTime: '11:00' },  // Sunday
+      4: { startTime: '20:30', endTime: '22:00' }   // Thursday
+    },
+    'epic': {
+      // Add Epic schedule when you provide it
+    }
+  };
+
+  const poolSchedule = schedule[poolNameLower];
+  if (!poolSchedule) {
+    console.warn(`❌ No schedule found for pool: ${poolName}`);
+    return null;
+  }
+
+  const daySchedule = poolSchedule[dayOfWeek];
+  if (!daySchedule) {
+    console.warn(`❌ No schedule found for ${poolName} on day ${dayOfWeek} (${date.toLocaleDateString()})`);
+    return null;
+  }
+  
+  console.log('✅ Found schedule:', daySchedule);
+
+  // Create full datetime strings
+  const startDateTime = `${dateString}T${daySchedule.startTime}:00`;
+  const endDateTime = `${dateString}T${daySchedule.endTime}:00`;
+  
+  console.log('✅ Created datetime strings:', { startDateTime, endDateTime });
+
+  return {
+    startTime: startDateTime,
+    endTime: endDateTime,
+    originalStartTime: daySchedule.startTime,
+    originalEndTime: daySchedule.endTime
+  };
+}
+
 // Generate random shared time between 60-120 minutes
 function generateRandomSharedTime() {
   return Math.floor(Math.random() * (120 - 60 + 1)) + 60;
@@ -186,6 +247,7 @@ function detectPoolFromLocation(location) {
 
 // Create game data for API
 async function createGameData(scrapedData) {
+  console.log('🔧 createGameData called with:', scrapedData);
   const detectedPool = detectPoolFromLocation(scrapedData.location);
 
   if (!detectedPool) {
@@ -197,11 +259,21 @@ async function createGameData(scrapedData) {
 
   // Parse the scraped date
   const parsedDate = parseDate(scrapedData.date);
+  console.log('📅 Parsed date:', parsedDate);
+  console.log('🏊 Pool name:', detectedPool.name);
+
+  // Get the correct start and end times for this pool and day
+  const gameTimes = getGameTimes(parsedDate, detectedPool.name);
+  console.log('⏰ Game times result:', gameTimes);
+  
+  if (!gameTimes) {
+    throw new Error(`No schedule found for ${detectedPool.name} on ${new Date(parsedDate).toLocaleDateString()}. Please check the day and pool combination.`);
+  }
 
   const gameData = {
     pool: detectedPool.id,
-    starttime: parsedDate,
-    endtime: parsedDate, // Using same date for now, could be enhanced later
+    starttime: gameTimes.startTime,
+    endtime: gameTimes.endTime,
     shared_time_minutes: generateRandomSharedTime(),
     attendees: playerIds,
     /*

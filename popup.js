@@ -252,14 +252,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Update Response:', result);
       } else {
         // Create new game (either no existing game or force-create)
-        const gameData = {
-          pool: currentGameData.detectedPool.id,
-          starttime: currentGameData.parsedDate,
-          endtime: currentGameData.parsedDate,
-          shared_time_minutes: generateRandomSharedTime(),
-          attendees: currentGameData.playerIds
-        };
-
+        // Use createGameData to get proper timing logic
+        displayApiStatus('Creating game data with proper timing...', 'api-info');
+        const { gameData } = await createGameData(currentScrapedData);
+        
         displayApiStatus('Creating new game...', 'api-info');
         const result = await submitGame(gameData);
         displayApiStatus('Game created successfully!', 'api-success');
