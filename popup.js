@@ -384,6 +384,12 @@ document.addEventListener('DOMContentLoaded', function() {
           Copy JSON to Clipboard
         </button>
       </div>
+
+      <div class="result-item">
+        <button id="exportCsvBtn" style="width: 100%; padding: 8px; margin-top: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Export as CSV
+        </button>
+      </div>
     `;
 
     // Add copy functionality
@@ -399,6 +405,58 @@ document.addEventListener('DOMContentLoaded', function() {
         copyBtn.textContent = 'Copy failed';
       });
     });
+
+    // Add CSV export functionality
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    exportCsvBtn.addEventListener('click', function() {
+      const csv = convertToCSV(data);
+      downloadCSV(csv, `meetup_data_${new Date().toISOString().split('T')[0]}.csv`);
+      exportCsvBtn.textContent = 'Exported!';
+      setTimeout(() => {
+        exportCsvBtn.textContent = 'Export as CSV';
+      }, 2000);
+    });
+  }
+
+  function convertToCSV(data) {
+    // CSV with basic info row and attendees rows
+    const escapeCSV = (str) => {
+      if (str == null) return '';
+      const stringValue = String(str);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    let csv = 'Type,Name,Location,Date,Scraped At\n';
+    
+    // Add metadata row
+    csv += `Metadata,"${escapeCSV(data.attendees.join('; '))}",${escapeCSV(data.location)},${escapeCSV(data.date)},${escapeCSV(new Date(data.scrapedAt).toLocaleString())}\n`;
+    
+    // Add header for attendees
+    csv += '\nAttendee\n';
+    
+    // Add each attendee as a row
+    data.attendees.forEach(attendee => {
+      csv += `${escapeCSV(attendee)}\n`;
+    });
+
+    return csv;
+  }
+
+  function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   function displayError(message) {
